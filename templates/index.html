@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sigma Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+            height: 100vh; /* Full viewport height */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        h1 {
+            color: #333;
+            margin-top: 20px;
+        }
+        .loading {
+            font-size: 1.2em;
+            color: #555;
+            margin: 20px 0;
+        }
+        .result {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+            margin-top: 20px;
+        }
+        .result img {
+            width: auto; /* Ensure natural width */
+            height: auto; /* Ensure natural height */
+            max-width: 100%; /* Ensure it doesn't overflow the container */
+            margin-top: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        input {
+            padding: 10px;
+            font-size: 1em;
+            width: 300px;
+            margin: 10px 0;
+        }
+        #headerImage {
+            width: auto; /* Keep the original width */
+            height: auto; /* Keep the original height */
+            margin-bottom: 20px;
+            transition: opacity 0.3s ease; /* Smooth fade effect when changing images */
+        }
+    </style>
+</head>
+<body>
+    <!-- Header image shown when user enters the site -->
+    <img id="headerImage" src="/static/images/SigmaCalculator.png" alt="Sigma Calculator Image">
+
+    <h1>Sigma Calculator</h1>
+    <p>Type anything to find out your Sigma result:</p>
+    <input type="text" id="userInput" placeholder="Enter your text here">
+    <button onclick="startCalculator()">Calculate</button>
+
+    <div id="loading" class="loading" style="display: none;"></div>
+    <div id="result" class="result"></div>
+
+    <script>
+        async function startCalculator() {
+            const input = document.getElementById("userInput").value;
+            if (!input) {
+                alert("Please enter some text!");
+                return;
+            }
+
+            const loadingDiv = document.getElementById("loading");
+            const resultDiv = document.getElementById("result");
+            const headerImage = document.getElementById("headerImage");
+
+            loadingDiv.innerHTML = "";
+            resultDiv.innerHTML = "";
+
+            loadingDiv.style.display = "block";
+
+            const response = await fetch("/calculate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ input })
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                alert(data.error);
+                loadingDiv.style.display = "none";
+                return;
+            }
+
+            const messages = data.loading_messages;
+            let index = 0;
+
+            const interval = setInterval(() => {
+                if (index < messages.length) {
+                    loadingDiv.innerHTML = messages[index];
+                    index++;
+                } else {
+                    clearInterval(interval);
+                    loadingDiv.style.display = "none";
+                    resultDiv.innerHTML = `<div>👉 ${data.result_text}</div>`;
+
+                    if (data.result_image) {
+                        // Fade out the current image, change it, then fade it back in
+                        headerImage.style.opacity = "0"; // Fade out the current image
+                        setTimeout(() => {
+                            headerImage.src = data.result_image; // Change the image
+                            headerImage.style.opacity = "1"; // Fade it back in
+                        }, 300); // Wait for fade-out to complete
+                    }
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
